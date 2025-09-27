@@ -1,0 +1,3 @@
+[submodule "prnet/dataset/--force"]
+	path = prnet/dataset/--force
+	url = https://github.com/yfeng95/face3d.git
