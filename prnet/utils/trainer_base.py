@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from moco.utils.misc import get_device
+from prnet.utils.misc import get_device
 
 
 class TrainerBase(ABC):

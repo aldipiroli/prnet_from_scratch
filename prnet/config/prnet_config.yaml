@@ -1,15 +1,10 @@
 ARTIFACTS_DIR: "artifacts"
 MODEL:
-  img_size: [512, 512, 3]
-  disable_bn: true
-  moco_queue:
-    max_batches: 8
-  temperature: 1
-  momentum: 0.999
 DATA:
-  root_dir: "data"
+  root_dir: "data/300W_LP"
   sub_dataset: "AFW"
   BFM: "BFM"
+  img_size: [256, 256]
   batch_size: 8
   n_classes: 20
 OPTIM:
