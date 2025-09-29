@@ -54,14 +54,16 @@ class FaceAlignDataset(Dataset):
         return mask_texture
 
     def get_uv_coord_3d_map(self, img, img_position, triangles):
-        uv_coord_3d_map = np.zeros((self.img_size[0], self.img_size[1], 3), dtype=np.float32)
+        h, w = img.shape[:2]
+        uv_coord_3d_map = np.zeros((h, w, 3), dtype=np.float32)
         uv_coords = self.uv_coords[:, :2].astype(np.int32)
 
         for tri in triangles:
             pos_uv = uv_coords[tri]
             coord_3d = img_position[tri]
-            mean_3d = np.mean(coord_3d, 0)  # TODO: use barycentric weighting
-            cv2.fillConvexPoly(uv_coord_3d_map, pos_uv, (mean_3d))
+            mean_3d = np.mean(coord_3d, 0)  # TODO: barycentric weighting
+            color = tuple(map(float, mean_3d))
+            cv2.fillConvexPoly(uv_coord_3d_map, pos_uv, color)
         return uv_coord_3d_map
 
     def overlay_image_to_face_mask(self, img, img_position, triangles):
@@ -88,12 +90,13 @@ class FaceAlignDataset(Dataset):
         return face_depth_mask
 
     def get_colored_pcl(self, img, img_position):
+        H, W = img.shape[0], img.shape[1]
         img_pos_coords = img_position[:, :2].astype(np.int32)
         pcl_colors = []
         for coords in img_pos_coords:
             valid = utils.check_if_inside_img(coords, self.img_size)
             if valid:
-                coords = np.clip(coords, [0, 0], [self.img_size[0] - 1, self.img_size[1] - 1])
+                coords = np.clip(coords, [0, 0], [H - 1, W - 1])
                 colors = img[coords[1], coords[0]]
             else:
                 colors = [0, 0, 0]
@@ -102,11 +105,12 @@ class FaceAlignDataset(Dataset):
         return pcl_colors
 
     def overlay_3d_map_on_image_as_points(self, img, uv_coord_3d_map):
+        H, W = img.shape[0], img.shape[1]
         overlay = img.copy()
         for i in range(0, self.img_size[0]):
             for j in range(0, self.img_size[1]):
                 coords_2d = uv_coord_3d_map[i, j][:2]
-                coords_2d = np.clip(coords_2d, [0, 0], [self.img_size[0] - 1, self.img_size[1] - 1]).astype(np.int32)
+                coords_2d = np.clip(coords_2d, [0, 0], [H - 1, W - 1]).astype(np.int32)
                 overlay[coords_2d[1], coords_2d[0]] = (1, 0, 0)
         return overlay
 
@@ -119,19 +123,19 @@ class FaceAlignDataset(Dataset):
             vertex_pos.append(uv_coord_3d_map[v, u])
         vertex_pos = np.array(vertex_pos)
 
-        # normalize depth 
+        # normalize depth
         depth = vertex_pos[..., -1]
         depth -= depth.min()
         depth /= depth.max()
         vertex_pos[..., -1] = depth
 
-        face_depth_mask = np.zeros_like(img,dtype=np.uint8)
+        face_depth_mask = np.zeros_like(img, dtype=np.uint8)
         for tri in self.bfm.full_triangles:
             vertex = vertex_pos[tri]
             pos = vertex[..., :2].astype(np.int32)
-            depth = np.mean(vertex[..., -1]) 
+            depth = np.mean(vertex[..., -1])
             curr_depth_mask = np.zeros_like(img, dtype=np.uint8)
-            cv2.fillConvexPoly(curr_depth_mask, pos, color=(depth*255, 0, 0))
+            cv2.fillConvexPoly(curr_depth_mask, pos, color=(depth * 255, 0, 0))
             face_depth_mask = np.maximum(face_depth_mask, curr_depth_mask)
 
         alpha = 0.7
@@ -139,15 +143,9 @@ class FaceAlignDataset(Dataset):
         return overlay
 
     def get_ground_truth(self, full_img, info):
-        img, img_position = utils.get_point_aligned_with_image(full_img, info, self.bfm, self.img_size)
-        face_mask_overlay = self.overlay_image_to_face_mask(img, img_position, self.bfm.full_triangles)
-        # face_depth_mask = self.get_face_depth_mask(img, img_position, self.bfm.full_triangles)
-        # uv_texture = self.get_uv_map_texture(img, img_position, self.bfm.full_triangles)
+        img, img_position = utils.get_point_aligned_with_full_image(full_img, info, self.bfm)
         uv_coord_3d_map = self.get_uv_coord_3d_map(img, img_position, self.bfm.full_triangles)
-        pcl_colors = self.get_colored_pcl(img, img_position)
-        overlay = self.overlay_3d_map_on_image_as_points(img, uv_coord_3d_map)
-        overlay = self.overlay_3d_map_on_image_as_triangles(img, uv_coord_3d_map)
-        print("..")
+        return uv_coord_3d_map
 
     def __len__(self):
         return len(self.files)
@@ -161,12 +159,3 @@ class FaceAlignDataset(Dataset):
 
         self.get_ground_truth(img, info)
         return img
-
-
-###########################################
-import debugpy
-
-debugpy.listen(("localhost", 6001))
-print("Waiting for debugger attach...")
-debugpy.wait_for_client()
-###########################################

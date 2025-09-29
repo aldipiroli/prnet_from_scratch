@@ -73,6 +73,33 @@ def get_point_aligned_with_image(image, info, bfm, img_size):
     position[:, 2] -= np.min(position[:, 2])
     return cropped_image, position
 
+def get_point_aligned_with_full_image(image, info, bfm):
+    h, w, _ = image.shape
+
+    # Parameters from .mat
+    pose = info["Pose_Para"].T.astype(np.float32)
+    shape_para = info["Shape_Para"].astype(np.float32)
+    exp_para = info["Exp_Para"].astype(np.float32)
+
+    # 1. Generate mesh vertices from shape and expression params
+    vertices = bfm.generate_vertices(shape_para, exp_para)
+
+    # 2. Apply pose transform (3DDFA style)
+    s = pose[-1, 0]
+    angles = pose[:3, 0]
+    t = pose[3:6, 0]
+    transformed_vertices = bfm.transform_3ddfa(vertices, s, angles, t)
+
+    # 3. Convert to image coordinates (flip y)
+    image_vertices = transformed_vertices.copy()
+    image_vertices[:, 1] = h - image_vertices[:, 1] - 1
+
+    # Normalize depth
+    position = image_vertices.copy()
+    position[:, 2] -= np.min(position[:, 2])
+
+    return image, position
+
 
 def check_if_inside_img(coord, img_shape):
     return coord[0] > 0 and coord[0] < img_shape[0] and coord[1] > 0 and coord[1] < img_shape[1]
