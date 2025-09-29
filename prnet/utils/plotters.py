@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
+
 
 def plot_3d(points, colors=None, point_size=5):
     cloud = pv.PolyData(points)
@@ -8,7 +8,7 @@ def plot_3d(points, colors=None, point_size=5):
         colors = np.array([[255, 0, 0]] * len(points), dtype=np.uint8)
     else:
         if colors.max() <= 1.0:
-            colors = (colors*255).astype(np.uint8)
+            colors = (colors * 255).astype(np.uint8)
         else:
             colors = colors.astype(np.uint8)
 

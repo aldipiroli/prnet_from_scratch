@@ -1,16 +1,15 @@
 import os
 from pathlib import Path
 
-from torch.utils.data import Dataset
-from torchvision import transforms
-from skimage import io
+import cv2
+import numpy as np
 import scipy.io as sio
+from skimage import io
+from torch.utils.data import Dataset
+
+from prnet.dataset import utils
 from prnet.dataset.external import face3d
 from prnet.dataset.external.face3d.morphable_model import MorphabelModel
-from prnet.dataset import utils
-import numpy as np
-import cv2
-from prnet.utils.plotters import plot_3d
 
 
 class FaceAlignDataset(Dataset):

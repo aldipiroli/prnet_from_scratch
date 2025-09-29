@@ -1,7 +1,7 @@
 # Most of the code is borrowed from: https://github.com/yfeng95/face3d
 import numpy as np
 from skimage import transform
-import cv2
+
 
 def process_uv(uv_coords, uv_h=256, uv_w=256):
     """
@@ -73,6 +73,7 @@ def get_point_aligned_with_image(image, info, bfm, img_size):
     position[:, 2] -= np.min(position[:, 2])
     return cropped_image, position
 
+
 def get_point_aligned_with_full_image(image, info, bfm):
     h, w, _ = image.shape
 
@@ -103,6 +104,7 @@ def get_point_aligned_with_full_image(image, info, bfm):
 
 def check_if_inside_img(coord, img_shape):
     return coord[0] > 0 and coord[0] < img_shape[0] and coord[1] > 0 and coord[1] < img_shape[1]
+
 
 def overlay_mask(img, face_depth_mask):
     img_float = img.astype(np.float32)

@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 class FaceLoss(nn.Module):
     def __init__(self, config, logger):
         super(FaceLoss, self).__init__()
@@ -7,4 +8,4 @@ class FaceLoss(nn.Module):
         self.logger = logger
 
     def forward(sefl):
-        return 
+        return

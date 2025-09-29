@@ -1,13 +1,14 @@
 import os
+
 import numpy as np
-import scipy.io as sio
 import pyvista as pv
+import scipy.io as sio
 
 # --- FILE PATHS ---
 image_mat_path = "/Users/aldipiroli/workspace/projects/prnet_from_scratch/data/300W_LP/AFW/AFW_134212_1_0.mat"  # 3DMM parameters for one image
-bfm_model_path = "/Users/aldipiroli/workspace/projects/prnet_from_scratch/data/300W_LP/Code/BFM.mat"         # Basel Face Model
-bfm_uv_path    = "/Users/aldipiroli/workspace/projects/prnet_from_scratch/data/300W_LP/Code/BFM_UV.mat"      # UV coordinates
-save_folder    = "."
+bfm_model_path = "/Users/aldipiroli/workspace/projects/prnet_from_scratch/data/300W_LP/Code/BFM.mat"  # Basel Face Model
+bfm_uv_path = "/Users/aldipiroli/workspace/projects/prnet_from_scratch/data/300W_LP/Code/BFM_UV.mat"  # UV coordinates
+save_folder = "."
 
 os.makedirs(save_folder, exist_ok=True)
 
@@ -16,12 +17,10 @@ bfm_struct = sio.loadmat(bfm_model_path, struct_as_record=False, squeeze_me=True
 bfm_data = bfm_struct["model"]
 
 
-
-
 bfm_struct = sio.loadmat(bfm_model_path, struct_as_record=False, squeeze_me=True)
-bfm_data = bfm_struct['model']  # or ['BFM'] depending on the file
+bfm_data = bfm_struct["model"]  # or ['BFM'] depending on the file
 if isinstance(bfm_data, np.ndarray):
-    bfm_data = bfm_data[0,0]
+    bfm_data = bfm_data[0, 0]
 
 # Access shape mean
 shape_mean = bfm_data.shapeMU
@@ -44,7 +43,7 @@ mesh3d = pv.PolyData(meanshape, faces)
 
 # Visualize
 plotter = pv.Plotter()
-plotter.add_mesh(mesh3d, color='lightblue', show_edges=True)
+plotter.add_mesh(mesh3d, color="lightblue", show_edges=True)
 plotter.add_axes()
 plotter.show_grid()
 plotter.show()

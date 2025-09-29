@@ -1,9 +1,8 @@
-import copy
 
-import torch
 from tqdm import tqdm
 
 from prnet.utils.trainer_base import TrainerBase
+
 
 class Trainer(TrainerBase):
     def __init__(self, config, logger):
