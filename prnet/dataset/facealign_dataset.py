@@ -10,7 +10,8 @@ from torch.utils.data import Dataset
 from prnet.dataset import utils
 from prnet.dataset.external import face3d
 from prnet.dataset.external.face3d.morphable_model import MorphabelModel
-
+import torchvision.transforms as transforms
+from skimage.transform import resize
 
 class FaceAlignDataset(Dataset):
     def __init__(self, cfg, mode, logger):
@@ -26,6 +27,10 @@ class FaceAlignDataset(Dataset):
         self.img_size = cfg["DATA"]["img_size"]
         self.load_uv_coords()
         self.load_morphable_model()
+
+        self.transforms = transforms.Compose(
+            [transforms.ToTensor(), transforms.Resize((self.img_size[0], self.img_size[1]))]
+        )
 
     def load_uv_coords(self):
         # .mat source: https://github.com/yfeng95/face3d/issues/95
@@ -142,7 +147,7 @@ class FaceAlignDataset(Dataset):
         return overlay
 
     def get_ground_truth(self, full_img, info):
-        img, img_position = utils.get_point_aligned_with_full_image(full_img, info, self.bfm)
+        img, img_position = utils.get_point_aligned_with_full_image_rescaled(full_img, info, self.bfm, self.img_size)
         uv_coord_3d_map = self.get_uv_coord_3d_map(img, img_position, self.bfm.full_triangles)
         return uv_coord_3d_map
 
@@ -152,9 +157,19 @@ class FaceAlignDataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.data_path / f"{self.files[idx]}.jpg"
         img = io.imread(img_path) / 255.0
+        # img = resize(img, (self.img_size[0], self.img_size[1]), anti_aliasing=True)
 
         info_path = self.data_path / f"{self.files[idx]}.mat"
         info = sio.loadmat(info_path)
 
         self.get_ground_truth(img, info)
         return img
+
+
+###########################################
+import debugpy
+
+debugpy.listen(("localhost", 6001))
+print("Waiting for debugger attach...")
+debugpy.wait_for_client()
+###########################################

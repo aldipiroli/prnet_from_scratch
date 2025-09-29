@@ -102,6 +102,39 @@ def get_point_aligned_with_full_image(image, info, bfm):
     return image, position
 
 
+def get_point_aligned_with_full_image_rescaled(image, info, bfm, img_size):
+    h, w, _ = image.shape
+    pose = info["Pose_Para"].T.astype(np.float32)
+    shape_para = info["Shape_Para"].astype(np.float32)
+    exp_para = info["Exp_Para"].astype(np.float32)
+
+    # Generate mesh vertices
+    vertices = bfm.generate_vertices(shape_para, exp_para)
+
+    # Apply pose transform
+    s = pose[-1, 0]
+    angles = pose[:3, 0]
+    t = pose[3:6, 0]
+    transformed_vertices = bfm.transform_3ddfa(vertices, s, angles, t)
+
+    # Convert to image coordinates
+    image_vertices = transformed_vertices.copy()
+    image_vertices[:, 1] = h - image_vertices[:, 1] - 1
+
+    # Resize image
+    resized_image = transform.resize(image, img_size, preserve_range=True, anti_aliasing=True).astype(image.dtype)
+
+    # Scale 2D coordinates
+    scale_x = img_size[1] / w
+    scale_y = img_size[0] / h
+    position = image_vertices.copy()
+    position[:, 0] *= scale_x
+    position[:, 1] *= scale_y
+    position[:, 2] *= (scale_x + scale_y) / 2  # approximate depth scaling
+    position[:, 2] -= np.min(position[:, 2])
+    return resized_image, position
+
+
 def check_if_inside_img(coord, img_shape):
     return coord[0] > 0 and coord[0] < img_shape[0] and coord[1] > 0 and coord[1] < img_shape[1]
 
