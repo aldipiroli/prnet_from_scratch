@@ -7,5 +7,9 @@ class FaceLoss(nn.Module):
         self.config = config
         self.logger = logger
 
-    def forward(sefl):
-        return
+    def forward(sefl, preds, labels):
+        loss_fn = nn.MSELoss()
+        loss = loss_fn(preds, labels)
+        loss_dict = {}
+        loss_dict["mse"] = loss
+        return loss, loss_dict
