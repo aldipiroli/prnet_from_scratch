@@ -1,6 +1,6 @@
 import argparse
 
-from prnet.dataset.facealign_dataset import FaceAlignDataset
+from prnet.dataset.proprocessed_facealign_dataset import PreprocessedFaceAlignDataset
 from prnet.model.loss import FaceLoss
 from prnet.model.prnet import PRNet
 from prnet.utils.misc import get_logger, load_config, make_artifacts_dirs
@@ -13,8 +13,8 @@ def train(args):
     logger = get_logger(config["LOG_DIR"])
     trainer = Trainer(config, logger)
 
-    train_dataset = FaceAlignDataset(cfg=config, mode="train", logger=logger)
-    val_dataset = FaceAlignDataset(cfg=config, mode="val", logger=logger)
+    train_dataset = PreprocessedFaceAlignDataset(cfg=config, mode="train", logger=logger)
+    val_dataset = PreprocessedFaceAlignDataset(cfg=config, mode="val", logger=logger)
 
     model = PRNet(config)
     trainer.set_model(model)

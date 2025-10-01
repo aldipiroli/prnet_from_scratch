@@ -11,8 +11,6 @@ from prnet.dataset import utils
 from prnet.dataset.external import face3d
 from prnet.dataset.external.face3d.morphable_model import MorphabelModel
 import torchvision.transforms as transforms
-from skimage.transform import resize
-
 
 class FaceAlignDataset(Dataset):
     def __init__(self, cfg, mode, logger):
@@ -164,4 +162,4 @@ class FaceAlignDataset(Dataset):
 
         img = self.transforms(img).float()
         uv_coord_3d_map = self.transforms(uv_coord_3d_map).float()
-        return img, uv_coord_3d_map
+        return img, uv_coord_3d_map, self.files[idx]
