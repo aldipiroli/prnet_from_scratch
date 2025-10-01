@@ -26,10 +26,9 @@ DATA:
   BFM: "BFM"
   img_size: [512, 512]
   batch_size: 8
-  n_classes: 20
 OPTIM:
   loss: ""
-  optimizer: "SGD"
+  optimizer: "Adam"
   lr: 0.001
   accumulate_gradient: False
   accumulate_gradient_iters: 8

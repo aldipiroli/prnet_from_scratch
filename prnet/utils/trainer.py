@@ -7,7 +7,6 @@ from prnet.utils.trainer_base import TrainerBase
 class Trainer(TrainerBase):
     def __init__(self, config, logger):
         super().__init__(config, logger)
-        self.n_classes = int(self.config["DATA"]["n_classes"])
         self.debug_plot_every = 10
 
     def train(self):
