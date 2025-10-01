@@ -13,6 +13,7 @@ from prnet.dataset.external.face3d.morphable_model import MorphabelModel
 import torchvision.transforms as transforms
 from skimage.transform import resize
 
+
 class FaceAlignDataset(Dataset):
     def __init__(self, cfg, mode, logger):
         super().__init__()
@@ -28,9 +29,7 @@ class FaceAlignDataset(Dataset):
         self.load_uv_coords()
         self.load_morphable_model()
 
-        self.transforms = transforms.Compose(
-            [transforms.ToTensor(), transforms.Resize((self.img_size[0], self.img_size[1]))]
-        )
+        self.transforms = transforms.Compose([transforms.ToTensor()])
 
     def load_uv_coords(self):
         # .mat source: https://github.com/yfeng95/face3d/issues/95
@@ -149,27 +148,20 @@ class FaceAlignDataset(Dataset):
     def get_ground_truth(self, full_img, info):
         img, img_position = utils.get_point_aligned_with_full_image_rescaled(full_img, info, self.bfm, self.img_size)
         uv_coord_3d_map = self.get_uv_coord_3d_map(img, img_position, self.bfm.full_triangles)
-        return uv_coord_3d_map
+        return img, uv_coord_3d_map
 
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, idx):
         img_path = self.data_path / f"{self.files[idx]}.jpg"
-        img = io.imread(img_path) / 255.0
-        # img = resize(img, (self.img_size[0], self.img_size[1]), anti_aliasing=True)
+        img_input = io.imread(img_path) / 255.0
 
         info_path = self.data_path / f"{self.files[idx]}.mat"
         info = sio.loadmat(info_path)
 
-        self.get_ground_truth(img, info)
-        return img
+        img, uv_coord_3d_map = self.get_ground_truth(img_input, info)
 
-
-###########################################
-import debugpy
-
-debugpy.listen(("localhost", 6001))
-print("Waiting for debugger attach...")
-debugpy.wait_for_client()
-###########################################
+        img = self.transforms(img).float()
+        uv_coord_3d_map = self.transforms(uv_coord_3d_map).float()
+        return img, uv_coord_3d_map
