@@ -130,21 +130,23 @@ class FaceAlignDataset(Dataset):
         depth /= depth.max()
         vertex_pos[..., -1] = depth
 
-        face_depth_mask = np.zeros_like(img, dtype=np.uint8)
+        face_depth_mask = np.zeros_like(img)
         for tri in self.bfm.full_triangles:
             vertex = vertex_pos[tri]
             pos = vertex[..., :2].astype(np.int32)
             depth = np.mean(vertex[..., -1])
-            curr_depth_mask = np.zeros_like(img, dtype=np.uint8)
+            if depth != depth:
+                depth = 0
+            curr_depth_mask = np.zeros_like(img)
             cv2.fillConvexPoly(curr_depth_mask, pos, color=(depth * 255, 0, 0))
             face_depth_mask = np.maximum(face_depth_mask, curr_depth_mask)
 
         alpha = 0.7
-        overlay = cv2.addWeighted(img.astype(np.float32), 1 - alpha, face_depth_mask.astype(np.float32), alpha, 0)
+        overlay = img + alpha * face_depth_mask
         return overlay
 
     def get_ground_truth(self, full_img, info):
-        img, img_position = utils.get_point_aligned_with_full_image_rescaled(full_img, info, self.bfm, self.img_size)
+        img, img_position = utils.get_point_aligned_with_image(full_img, info, self.bfm, self.img_size)
         uv_coord_3d_map = self.get_uv_coord_3d_map(img, img_position, self.bfm.full_triangles)
         return img, uv_coord_3d_map
 

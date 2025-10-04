@@ -1,13 +1,14 @@
-
 from tqdm import tqdm
 
 from prnet.utils.trainer_base import TrainerBase
-
+from prnet.dataset.facealign_dataset import FaceAlignDataset
+from prnet.utils.plotters import plt_preds
 
 class Trainer(TrainerBase):
     def __init__(self, config, logger):
         super().__init__(config, logger)
         self.debug_plot_every = 10
+        self.face_align = FaceAlignDataset(cfg=config, mode="train", logger=logger)
 
     def train(self):
         self.logger.info("Started training..")

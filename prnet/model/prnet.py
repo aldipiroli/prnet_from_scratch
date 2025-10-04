@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 
 
 class ResBlock(nn.Module):
@@ -53,14 +54,20 @@ class PRNet(nn.Module):
             decoder_blocks.append(
                 nn.Sequential(
                     nn.ConvTranspose2d(block[0], block[1], block[2], block[3], block[4], output_padding=block[5]),
-                    nn.ReLU(inplace=True)
+                    nn.ReLU(inplace=True),
                 )
             )
         self.decoder_blocks = nn.Sequential(*decoder_blocks)
+
+        # uv_coords
+        out_cfg = self.config["MODEL"]["BLOCKS"]["out_layer"]
+        self.out_layer = nn.Conv2d(out_cfg[0], out_cfg[1], out_cfg[2], out_cfg[3], out_cfg[4])
 
     def forward(self, x):
         x = self.conv1(x)
         x = self.relu(x)
         x = self.res_blocks(x)
         x = self.decoder_blocks(x)
-        return x
+        x = self.out_layer(x)
+        uv_coords = self.relu(x)
+        return uv_coords

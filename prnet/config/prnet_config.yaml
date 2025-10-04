@@ -18,25 +18,26 @@ MODEL:
         [128, 64, 3, 2, 1, 1],
         [64, 32, 3, 2, 1, 1],
         [32, 16, 3, 2, 1, 1],
-        [16, 3, 3, 2, 1, 1],
+        [16, 16, 3, 2, 1, 1],
       ]
+    out_layer: [16, 3, 3, 1, 1]
 DATA:
   root_dir: "data/300W_LP"
   sub_dataset: "AFW"
   BFM: "BFM"
   img_size: [512, 512]
-  batch_size: 8
+  batch_size: 1
 OPTIM:
   loss: ""
   optimizer: "Adam"
   lr: 0.001
   accumulate_gradient: False
   accumulate_gradient_iters: 8
-  num_epochs: 100
+  num_epochs: 100000
   num_iterations_val: 50
-  save_ckpt_every: 10
+  save_ckpt_every: 1000
   eval_every: 5
-  gradient_clip: true
+  gradient_clip: False
   scheduler: ""
   T_max: 100
   eta_min: 0.000001
