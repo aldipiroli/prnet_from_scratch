@@ -47,3 +47,26 @@ class Trainer(TrainerBase):
 
     def evaluate_model(self):
         self.model.eval()
+        pbar = tqdm(enumerate(self.val_loader), total=len(self.val_loader))
+        for n_iter, (img, labels) in pbar:
+            img = img.to(self.device)
+            labels = labels.to(self.device)
+
+            preds = self.model(img)
+            loss, loss_dict = self.loss_fn(preds, labels)
+            self.write_dict_to_tb(loss_dict, self.total_iters, prefix="val")
+
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+
+            self.total_iters += 1
+            pbar.set_postfix(
+                {
+                    "mode": "val",
+                    "epoch": f"{self.epoch}/{self.config['OPTIM']['num_epochs']}",
+                    "loss": loss.item(),
+                }
+            )
+        pbar.close()
+

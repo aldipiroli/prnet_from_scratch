@@ -27,8 +27,8 @@ def generate_offline_gt(args):
     train_dataset.files = remaining_files
 
     total = len(train_dataset)
-    for img, gt, filename in tqdm(train_dataset, total=total, desc="Generating GT"):
-        data = {"img": img, "gt": gt}
+    for data in tqdm(train_dataset, total=total, desc="Generating GT"):
+        filename = data["idx"]
         with open(f"{args.out_dir}/{filename}.pkl", "wb") as file:
             pickle.dump(data, file)
     logger.info("Processing complete.")

@@ -35,7 +35,7 @@ OPTIM:
   accumulate_gradient_iters: 8
   num_epochs: 100000
   num_iterations_val: 50
-  save_ckpt_every: 1000
+  save_ckpt_every: 5
   eval_every: 5
   gradient_clip: False
   scheduler: ""

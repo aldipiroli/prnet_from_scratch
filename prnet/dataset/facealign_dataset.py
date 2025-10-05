@@ -12,6 +12,7 @@ from prnet.dataset.external import face3d
 from prnet.dataset.external.face3d.morphable_model import MorphabelModel
 import torchvision.transforms as transforms
 
+
 class FaceAlignDataset(Dataset):
     def __init__(self, cfg, mode, logger):
         super().__init__()
@@ -146,9 +147,13 @@ class FaceAlignDataset(Dataset):
         return overlay
 
     def get_ground_truth(self, full_img, info):
-        img, img_position = utils.get_point_aligned_with_image(full_img, info, self.bfm, self.img_size)
-        uv_coord_3d_map = self.get_uv_coord_3d_map(img, img_position, self.bfm.full_triangles)
-        return img, uv_coord_3d_map
+        img, coords, coords_diff, coords_default, pose = utils.get_point_aligned_with_full_image_rescaled_diffs(
+            full_img, info, self.bfm, self.img_size
+        )
+        uv_coords = self.get_uv_coord_3d_map(img, coords, self.bfm.full_triangles)
+        uv_coords_diff = self.get_uv_coord_3d_map(img, coords_diff, self.bfm.full_triangles)
+        uv_coords_default = self.get_uv_coord_3d_map(img, coords_default, self.bfm.full_triangles)
+        return img, uv_coords, uv_coords_diff, uv_coords_default, pose
 
     def __len__(self):
         return len(self.files)
@@ -160,8 +165,18 @@ class FaceAlignDataset(Dataset):
         info_path = self.data_path / f"{self.files[idx]}.mat"
         info = sio.loadmat(info_path)
 
-        img, uv_coord_3d_map = self.get_ground_truth(img_input, info)
+        img, uv_coords, uv_coords_diff, uv_coords_default, pose = self.get_ground_truth(img_input, info)
 
         img = self.transforms(img).float()
-        uv_coord_3d_map = self.transforms(uv_coord_3d_map).float()
-        return img, uv_coord_3d_map, self.files[idx]
+        uv_coords = self.transforms(uv_coords).float()
+        uv_coords_diff = self.transforms(uv_coords_diff).float()
+        uv_coords_default = self.transforms(uv_coords_default).float()
+        return_dict = {
+            "idx": self.files[idx],
+            "img": img,
+            "uv_coords": uv_coords,
+            "uv_coords_diff": uv_coords_diff,
+            "uv_coords_default": uv_coords_default,
+            "pose": pose,
+        }
+        return return_dict

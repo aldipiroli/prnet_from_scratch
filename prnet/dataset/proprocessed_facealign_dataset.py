@@ -15,9 +15,19 @@ class PreprocessedFaceAlignDataset(Dataset):
         self.root_dir = Path(cfg["DATA"]["root_dir"])
         self.data_path = self.root_dir / cfg["DATA"]["sub_dataset"] / "processed"
         self.files = os.listdir(self.data_path)
-        print("self.files", self.files)
+        self.logger.info(f"Files found {len(self.files)}")
+        assert len(self.files) > 0
+        self.files = self.get_split()
+        self.logger.info(f"Mode: {self.mode}, n_files: {len(self.files)}")
         self.img_size = cfg["DATA"]["img_size"]
         self.transforms = transforms.Compose([transforms.ToTensor()])
+
+    def get_split(self, ratio=0.8):
+        n = int(len(self.files) * ratio)
+        if self.mode == "train":
+            return self.files[:n]
+        else:
+            return self.files[n:]
 
     def __len__(self):
         return len(self.files)

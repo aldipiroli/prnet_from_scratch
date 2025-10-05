@@ -69,5 +69,4 @@ class PRNet(nn.Module):
         x = self.res_blocks(x)
         x = self.decoder_blocks(x)
         x = self.out_layer(x)
-        uv_coords = self.relu(x)
-        return uv_coords
+        return x

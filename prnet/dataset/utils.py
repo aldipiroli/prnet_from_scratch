@@ -135,6 +135,55 @@ def get_point_aligned_with_full_image_rescaled(image, info, bfm, img_size):
     return resized_image, position
 
 
+def get_point_aligned_with_full_image_rescaled_diffs(image, info, bfm, img_size):
+    h, w, _ = image.shape
+    pose = info["Pose_Para"].T.astype(np.float32)
+    shape_para = info["Shape_Para"].astype(np.float32)
+    exp_para = info["Exp_Para"].astype(np.float32)
+
+    # Generate mesh vertices
+    vertices = bfm.generate_vertices(shape_para, exp_para)
+
+    # Default (neutral) shape vertices
+    default_vertices = bfm.generate_vertices(np.zeros_like(shape_para), np.zeros_like(exp_para))
+
+    # Apply pose transform to both
+    s = pose[-1, 0]
+    angles = pose[:3, 0]
+    t = pose[3:6, 0]
+    transformed_vertices = bfm.transform_3ddfa(vertices, s, angles, t)
+    default_transformed_vertices = bfm.transform_3ddfa(default_vertices, s, angles, t)
+
+    # Convert to image coordinates
+    image_vertices = transformed_vertices.copy()
+    image_vertices[:, 1] = h - image_vertices[:, 1] - 1
+
+    default_image_vertices = default_transformed_vertices.copy()
+    default_image_vertices[:, 1] = h - default_image_vertices[:, 1] - 1
+
+    # Resize image
+    resized_image = transform.resize(image, img_size, preserve_range=True, anti_aliasing=True).astype(image.dtype)
+
+    # Scale coordinates
+    scale_x = img_size[1] / w
+    scale_y = img_size[0] / h
+
+    position = scale_points(image_vertices, scale_x, scale_y)
+    default_position = scale_points(default_image_vertices, scale_x, scale_y)
+
+    displacement = position - default_position
+    return resized_image, position, displacement, default_position,pose
+
+
+def scale_points(v, scale_x, scale_y):
+    v = v.copy()
+    v[:, 0] *= scale_x
+    v[:, 1] *= scale_y
+    v[:, 2] *= (scale_x + scale_y) / 2
+    v[:, 2] -= np.min(v[:, 2])
+    return v
+
+
 def check_if_inside_img(coord, img_shape):
     return coord[0] > 0 and coord[0] < img_shape[0] and coord[1] > 0 and coord[1] < img_shape[1]
 
@@ -148,3 +197,10 @@ def overlay_mask(img, face_depth_mask):
     overlay = img_float.copy()
     overlay[non_zero_mask] = face_depth_mask_float[non_zero_mask]
     return overlay
+
+###########################################
+import debugpy
+debugpy.listen(('localhost', 6001))
+print('Waiting for debugger attach...')
+debugpy.wait_for_client()
+###########################################
