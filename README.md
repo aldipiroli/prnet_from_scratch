@@ -24,4 +24,4 @@ Qualitative examples of a model trained for 25 epochs on the AFW portion of the 
 | ![](assets/003/AFW_4538917191_11_0.jpg) | ![](assets/003/pred_gt.gif) | ![](assets/003/error.gif) |
 
 
-> Note: This reporistory is just for learning purposes and does not aim to reproduce the results of the [official implementation](https://github.com/yfeng95/PRNet). Additionally, in the examples above are shown for the reconstruction tasks. Finally, most of the code for the ground truth generation was borrowed from [yfeng95/face3d](https://github.com/yfeng95/face3d).
+> Note: This reporistory is just for learning purposes and does not aim to reproduce the results of the [official implementation](https://github.com/yfeng95/PRNet). Additionally, the above examples are shown only for the reconstruction task (alignment is not learned). Finally, most of the code for the ground truth generation was borrowed from [yfeng95/face3d](https://github.com/yfeng95/face3d).
