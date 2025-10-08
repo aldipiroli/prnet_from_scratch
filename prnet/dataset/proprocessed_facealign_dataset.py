@@ -4,6 +4,7 @@ from pathlib import Path
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import pickle
+import torch.nn.functional as F
 
 
 class PreprocessedFaceAlignDataset(Dataset):
@@ -37,5 +38,7 @@ class PreprocessedFaceAlignDataset(Dataset):
         with open(f"{self.data_path}/{data_path}", "rb") as file:
             data = pickle.load(file)
         img = data["img"]
-        gt = data["gt"]
-        return img, gt
+        uv_position = data["uv_position"]
+        uv_displacement = data["uv_displacement"]
+        uv_default_position = data["uv_default_position"]
+        return img, uv_position, uv_displacement, uv_default_position, data["idx"]

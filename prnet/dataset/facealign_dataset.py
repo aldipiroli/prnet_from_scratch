@@ -11,6 +11,7 @@ from prnet.dataset import utils
 from prnet.dataset.external import face3d
 from prnet.dataset.external.face3d.morphable_model import MorphabelModel
 import torchvision.transforms as transforms
+from prnet.utils import plotters
 
 
 class FaceAlignDataset(Dataset):
@@ -24,11 +25,23 @@ class FaceAlignDataset(Dataset):
         self.bfm_path = self.root_dir / cfg["DATA"]["BFM"]
         self.files = os.listdir(self.data_path)
         self.files = list(set([os.path.splitext(file)[0] for file in self.files]))
+        self.filter_transforms()
         self.img_size = cfg["DATA"]["img_size"]
         self.load_uv_coords()
         self.load_morphable_model()
 
         self.transforms = transforms.Compose([transforms.ToTensor()])
+
+    def filter_transforms(self, valid=["0", "1", "2", "3"]):
+        self.logger.info(f"Total files {len(self.files)}")
+
+        filtered_files = []
+        for file in self.files:
+            idx = file.split("_")[-1]
+            if idx in valid:
+                filtered_files.append(file)
+        self.files = filtered_files
+        self.logger.info(f"Total files {len(self.files)}")
 
     def load_uv_coords(self):
         # .mat source: https://github.com/yfeng95/face3d/issues/95
@@ -147,13 +160,13 @@ class FaceAlignDataset(Dataset):
         return overlay
 
     def get_ground_truth(self, full_img, info):
-        img, coords, coords_diff, coords_default, pose = utils.get_point_aligned_with_full_image_rescaled_diffs(
+        img, position, displacement, default_position = utils.get_point_diffs_from_neutral(
             full_img, info, self.bfm, self.img_size
         )
-        uv_coords = self.get_uv_coord_3d_map(img, coords, self.bfm.full_triangles)
-        uv_coords_diff = self.get_uv_coord_3d_map(img, coords_diff, self.bfm.full_triangles)
-        uv_coords_default = self.get_uv_coord_3d_map(img, coords_default, self.bfm.full_triangles)
-        return img, uv_coords, uv_coords_diff, uv_coords_default, pose
+        uv_position = self.get_uv_coord_3d_map(img, position, self.bfm.full_triangles)
+        uv_displacement = self.get_uv_coord_3d_map(img, displacement, self.bfm.full_triangles)
+        uv_default_position = self.get_uv_coord_3d_map(img, default_position, self.bfm.full_triangles)
+        return img, uv_position, uv_displacement, uv_default_position
 
     def __len__(self):
         return len(self.files)
@@ -165,18 +178,17 @@ class FaceAlignDataset(Dataset):
         info_path = self.data_path / f"{self.files[idx]}.mat"
         info = sio.loadmat(info_path)
 
-        img, uv_coords, uv_coords_diff, uv_coords_default, pose = self.get_ground_truth(img_input, info)
+        img, uv_position, uv_displacement, uv_default_position = self.get_ground_truth(img_input, info)
 
         img = self.transforms(img).float()
-        uv_coords = self.transforms(uv_coords).float()
-        uv_coords_diff = self.transforms(uv_coords_diff).float()
-        uv_coords_default = self.transforms(uv_coords_default).float()
+        uv_position = self.transforms(uv_position).float()
+        uv_displacement = self.transforms(uv_displacement).float()
+        uv_default_position = self.transforms(uv_default_position).float()
         return_dict = {
             "idx": self.files[idx],
             "img": img,
-            "uv_coords": uv_coords,
-            "uv_coords_diff": uv_coords_diff,
-            "uv_coords_default": uv_coords_default,
-            "pose": pose,
+            "uv_position": uv_position,
+            "uv_displacement": uv_displacement,
+            "uv_default_position": uv_default_position,
         }
         return return_dict

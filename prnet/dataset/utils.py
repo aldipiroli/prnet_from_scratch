@@ -135,7 +135,7 @@ def get_point_aligned_with_full_image_rescaled(image, info, bfm, img_size):
     return resized_image, position
 
 
-def get_point_aligned_with_full_image_rescaled_diffs(image, info, bfm, img_size):
+def get_point_diffs_from_neutral(image, info, bfm, img_size):
     h, w, _ = image.shape
     pose = info["Pose_Para"].T.astype(np.float32)
     shape_para = info["Shape_Para"].astype(np.float32)
@@ -143,46 +143,69 @@ def get_point_aligned_with_full_image_rescaled_diffs(image, info, bfm, img_size)
 
     # Generate mesh vertices
     vertices = bfm.generate_vertices(shape_para, exp_para)
-
-    # Default (neutral) shape vertices
     default_vertices = bfm.generate_vertices(np.zeros_like(shape_para), np.zeros_like(exp_para))
 
-    # Apply pose transform to both
+    # Apply pose transform (3DDFA style)
     s = pose[-1, 0]
     angles = pose[:3, 0]
     t = pose[3:6, 0]
     transformed_vertices = bfm.transform_3ddfa(vertices, s, angles, t)
     default_transformed_vertices = bfm.transform_3ddfa(default_vertices, s, angles, t)
 
-    # Convert to image coordinates
-    image_vertices = transformed_vertices.copy()
-    image_vertices[:, 1] = h - image_vertices[:, 1] - 1
+    # Convert to image coordinates (flip y)
+    transformed_vertices[:, 1] = h - transformed_vertices[:, 1] - 1
+    default_transformed_vertices[:, 1] = h - default_transformed_vertices[:, 1] - 1
 
-    default_image_vertices = default_transformed_vertices.copy()
-    default_image_vertices[:, 1] = h - default_image_vertices[:, 1] - 1
+    # Compute crop transform using keypoints
+    kpt = transformed_vertices[bfm.kpt_ind, :].astype(np.int32)
+    left, right = np.min(kpt[:, 0]), np.max(kpt[:, 0])
+    top, bottom = np.min(kpt[:, 1]), np.max(kpt[:, 1])
+    center = np.array([0.5 * (left + right), 0.5 * (top + bottom)])
+    old_size = 0.5 * ((right - left) + (bottom - top))
+    size = int(old_size * 1.5)
 
-    # Resize image
-    resized_image = transform.resize(image, img_size, preserve_range=True, anti_aliasing=True).astype(image.dtype)
+    # Random perturbation
+    marg = old_size * 0.1
+    center[0] += np.random.uniform(-marg, marg)
+    center[1] += np.random.uniform(-marg, marg)
+    size *= np.random.rand() * 0.2 + 0.9
 
-    # Scale coordinates
-    scale_x = img_size[1] / w
-    scale_y = img_size[0] / h
+    # Similarity transform to target crop size
+    src_pts = np.array([
+        [center[0] - size / 2, center[1] - size / 2],
+        [center[0] - size / 2, center[1] + size / 2],
+        [center[0] + size / 2, center[1] - size / 2],
+    ])
+    dst_pts = np.array([[0, 0], [0, img_size[0] - 1], [img_size[1] - 1, 0]])
+    tform = transform.estimate_transform("similarity", src_pts, dst_pts)
 
-    position = scale_points(image_vertices, scale_x, scale_y)
-    default_position = scale_points(default_image_vertices, scale_x, scale_y)
+    # Crop image
+    cropped_image = transform.warp(image, tform.inverse, output_shape=(img_size[0], img_size[1]))
 
-    displacement = position - default_position
-    return resized_image, position, displacement, default_position,pose
+    def apply_transform(verts):
+        verts_h = verts.copy()
+        verts_h[:, 2] = 1
+        verts_h = np.dot(verts_h, tform.params.T)
+        a, b = tform.params[0, 0], tform.params[0, 1]
+        scale = np.sqrt(a * a + b * b)
+        verts_h[:, 2] = verts[:, 2] * scale
+        verts_h[:, 2] -= np.min(verts_h[:, 2])
+        return verts_h
+
+    image_position = apply_transform(transformed_vertices)
+    image_position = normalize_points(image_position)
+    default_position = apply_transform(default_transformed_vertices)
+    default_position = normalize_points(default_position)
+
+    displacement = image_position - default_position
+    return cropped_image, image_position, displacement, default_position
 
 
-def scale_points(v, scale_x, scale_y):
-    v = v.copy()
-    v[:, 0] *= scale_x
-    v[:, 1] *= scale_y
-    v[:, 2] *= (scale_x + scale_y) / 2
-    v[:, 2] -= np.min(v[:, 2])
-    return v
-
+def normalize_points(coords):
+    min_val = coords.min()
+    max_val = coords.max()
+    normalized = (coords - min_val) / (max_val - min_val)
+    return normalized
 
 def check_if_inside_img(coord, img_shape):
     return coord[0] > 0 and coord[0] < img_shape[0] and coord[1] > 0 and coord[1] < img_shape[1]
@@ -197,10 +220,3 @@ def overlay_mask(img, face_depth_mask):
     overlay = img_float.copy()
     overlay[non_zero_mask] = face_depth_mask_float[non_zero_mask]
     return overlay
-
-###########################################
-import debugpy
-debugpy.listen(('localhost', 6001))
-print('Waiting for debugger attach...')
-debugpy.wait_for_client()
-###########################################

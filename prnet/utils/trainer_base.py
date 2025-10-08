@@ -15,7 +15,8 @@ class TrainerBase(ABC):
         self.logger.info(f"config: {config}")
         self.epoch = 0
         self.num_epochs = config["OPTIM"]["num_epochs"]
-        self.total_iters = 0
+        self.total_iters_train = 0
+        self.total_iters_val = 0
         self.set_mlops()
 
         self.ckpt_dir = Path(config["CKPT_DIR"])
@@ -63,7 +64,7 @@ class TrainerBase(ABC):
                 "epoch": self.epoch,
                 "model_state_dict": self.model.state_dict(),
                 "optimizer_state_dict": self.optimizer.state_dict(),
-                "total_iters": self.total_iters,
+                "total_iters": self.total_iters_train,
             },
             model_path,
         )
@@ -90,7 +91,7 @@ class TrainerBase(ABC):
         if skip_otimizer:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.epoch = checkpoint.get("epoch", 0)
-        self.total_iters = checkpoint.get("total_iters", 0)
+        self.total_iters_train = checkpoint.get("total_iters", 0)
 
     def set_dataset(self, train_dataset, val_dataset, data_config, val_set_batch_size=None, shuffle_valset=False):
         self.train_dataset = train_dataset
@@ -184,8 +185,8 @@ class TrainerBase(ABC):
             self.optimizer.step()
             self.optimizer.zero_grad()
         elif (
-            self.total_iters % self.config["OPTIM"]["accumulate_gradient_iters"] == 0
-            or self.total_iters % len(self.train_loader) == 0
+            self.total_iters_train % self.config["OPTIM"]["accumulate_gradient_iters"] == 0
+            or self.total_iters_train % len(self.train_loader) == 0
         ):
             self.optimizer.step()
             self.optimizer.zero_grad()
